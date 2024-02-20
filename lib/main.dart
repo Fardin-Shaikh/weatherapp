@@ -1,5 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:weatherapp/connectivity/dependency_injection.dart';
 
 import 'package:weatherapp/screens/dashboard.dart';
 import 'package:weatherapp/screens/form.dart';
@@ -8,6 +10,7 @@ import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  DependencyInjection.init(); //internet connectivity is checking
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -19,8 +22,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
+    return GetMaterialApp(
+      title: 'Weather App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
@@ -34,7 +37,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => FormPage(
               islogin: false,
             ),
-        '/dashboard': (context) => DashBoard(),
+        '/dashboard': (context) => const DashBoard(),
       },
     );
   }

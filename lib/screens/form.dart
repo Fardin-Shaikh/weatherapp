@@ -2,6 +2,10 @@ import 'dart:developer';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:form_field_validator/form_field_validator.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:weatherapp/auth/firebase_auth_services.dart';
+import 'package:weatherapp/global_w/form_container_widget.dart';
+import 'package:weatherapp/global_w/toast.dart';
 
 class FormPage extends StatefulWidget {
   final bool islogin;
@@ -11,12 +15,12 @@ class FormPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<FormPage> {
-  // @override
   final TextEditingController emailController = TextEditingController();
 
   final TextEditingController passwordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
+  final FirebaseAuthService _auth = FirebaseAuthService();
 
   bool _isLoading = false;
   final passwordValidator = MultiValidator([
@@ -26,16 +30,28 @@ class _SignUpPageState extends State<FormPage> {
         errorText: 'passwords must have at least one special character')
   ]);
   final emailValidator = MultiValidator([
-    RequiredValidator(errorText: "* Required"),
+    RequiredValidator(errorText: "Required"),
     EmailValidator(errorText: "Enter valid email id"),
   ]);
 
   @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    Size size = MediaQuery.of(context).size;
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: Text(widget.islogin ? 'Login' : 'Sign Up'),
+          title: Text(widget.islogin ? 'Login' : 'Sign Up',
+              style: GoogleFonts.questrial(
+                // color: isDarkMode ? Colors.white54 : Colors.black54,
+                fontSize: size.height * 0.04,
+              )),
         ),
         body: SingleChildScrollView(
           child: Center(
@@ -46,87 +62,71 @@ class _SignUpPageState extends State<FormPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
+                    SizedBox(height: size.height * 0.07),
                     Image.asset(
-                      'lib/assets/logo.png', // Your logo image path
-                      width: 150.0,
+                      'lib/assets/logo.png',
+                      width: size.width * 0.5,
                     ),
-                    SizedBox(height: 30.0),
-                    TextFormField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email),
-                        border: OutlineInputBorder(),
+                    Text(
+                      'Weather App',
+                      style: GoogleFonts.questrial(
+                        // color: isDarkMode ? Colors.white54 : Colors.black54,
+                        fontSize: size.height * 0.025,
                       ),
+                    ),
+                    SizedBox(height: size.height * 0.04),
+                    FormContainerWidget(
+                      controller: emailController,
+                      hintText: "Email",
+                      isPasswordField: false,
                       validator: emailValidator,
                     ),
-                    SizedBox(height: 20.0),
-                    TextFormField(
+                    SizedBox(height: size.height * 0.03),
+                    FormContainerWidget(
                         controller: passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText:
-                              widget.islogin ? 'Password' : 'Set Password',
-                          prefixIcon: Icon(Icons.lock),
-                          border: OutlineInputBorder(),
-                        ),
+                        hintText: widget.islogin ? "Password" : "Set Password",
+                        isPasswordField: true,
                         validator: widget.islogin
                             ? RequiredValidator(
                                 errorText: 'password is required')
                             : passwordValidator),
-                    SizedBox(height: 20.0),
-                    ElevatedButton(
-                      onPressed: () {
+                    SizedBox(height: size.height * 0.03),
+                    GestureDetector(
+                      onTap: () {
                         if (_formKey.currentState!.validate()) {
-                          setState(() {
-                            _isLoading = true;
-                          });
                           if (widget.islogin) {
-                            signInWithEmailAndPassword(
-                              emailController.text.trim(),
-                              passwordController.text.trim(),
-                            ).then((user) {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                              if (user != null) {
-                                // Navigator.pushReplacementNamed(
-                                //     context, '/dashboard', arguments: {
-                                //   'user_email': emailController.text.trim()
-                                // });
-                                Navigator.pushNamed(context, '/dashboard',
-                                    arguments: {
-                                      'user_email': emailController.text.trim()
-                                    });
-                              }
-                            });
+                            _signIn();
                           } else {
-                            signUpWithEmailAndPassword(
-                              emailController.text.trim(),
-                              passwordController.text.trim(),
-                            ).then((user) {
-                              setState(() {
-                                _isLoading = false;
-                              });
-                              if (user != null) {
-                                // Navigator.pushReplacementNamed(
-                                //     context, '/dashboard', arguments: {
-                                //   'user_email': emailController.text.trim()
-                                // });
-                                Navigator.pushNamed(context, '/dashboard',
-                                    arguments: {
-                                      'user_email': emailController.text.trim()
-                                    });
-                              }
-                            });
+                            _signUp();
                           }
                         }
                       },
-                      child: _isLoading
-                          ? CircularProgressIndicator()
-                          : Text(widget.islogin ? 'Login' : 'Sign Up'),
+                      child: Container(
+                        width: double.infinity,
+                        height: size.height * 0.06,
+                        decoration: BoxDecoration(
+                          color: Colors.deepPurple,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: _isLoading
+                              ? CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(widget.islogin ? 'Login' : 'Sign Up',
+                                  // style: TextStyle(
+                                  //   color: Colors.white,
+                                  //   fontWeight: FontWeight.bold,
+                                  // ),
+                                  style: GoogleFonts.questrial(
+                                    color: Colors.white,
+                                    fontSize: size.height * 0.025,
+                                    fontWeight: FontWeight.bold,
+                                  )),
+                        ),
+                      ),
                     ),
-                    SizedBox(height: 10.0),
+                    SizedBox(height: size.height * 0.025),
                     TextButton(
                       onPressed: () {
                         if (widget.islogin) {
@@ -135,9 +135,14 @@ class _SignUpPageState extends State<FormPage> {
                           Navigator.pop(context);
                         }
                       },
-                      child: Text(widget.islogin
-                          ? 'Don\'t have an account? Sign up'
-                          : 'Already have an account? Log in'),
+                      child: Text(
+                          widget.islogin
+                              ? 'Don\'t have an account? Sign up'
+                              : 'Already have an account? Log in',
+                          style: GoogleFonts.questrial(
+                            // color: isDarkMode ? Colors.white54 : Colors.black54,
+                            fontSize: size.height * 0.023,
+                          )),
                     ),
                   ],
                 ),
@@ -186,55 +191,52 @@ class _SignUpPageState extends State<FormPage> {
   }
 
 //login
-  Future<User?> signInWithEmailAndPassword(
-      String email, String password) async {
-    try {
-      UserCredential userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      )
-          .then(
-        (value) {
-          log(value.user!.getIdToken().toString() + 'ldfalsdlfa00000000000');
-          throw 'ceh';
-        },
-      );
-      // Check if userCredential.user is null and handle accordingly
-      ;
-      if (userCredential.user == null) {
-        // Handle scenario where user is null after successful sign-in
-      }
-      return userCredential.user;
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password') {
-        // Handle wrong password error
-        print('The password provided is incorrect.');
-        // Show a dialog or toast to notify the user about the wrong password
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Incorrect Password'),
-            content:
-                Text('The password provided is incorrect. Please try again.'),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text('OK'),
-              ),
-            ],
-          ),
-        );
-      } else if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      }
-      // Handle other FirebaseAuthException errors here
-    } catch (e) {
-      print(e.toString());
-      // Handle other generic exceptions here
+
+  void _signIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    String email = emailController.text.trim().toLowerCase();
+    String password = passwordController.text.trim().toLowerCase();
+
+    User? user = await _auth.signInWithEmailAndPassword(email, password);
+    log(user.toString());
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (user != null) {
+      showToast(message: "User is successfully signed in");
+      Navigator.pushNamedAndRemoveUntil(
+          context, '/dashboard', (Route<dynamic> route) => false,
+          arguments: {'user_email': emailController.text.trim()});
+    } else {
+      showToast(message: "Invalid email or password.");
     }
-    return null;
+  }
+
+  void _signUp() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // String username = _usernameController.text;
+    String email = emailController.text.trim().toLowerCase();
+    String password = passwordController.text.trim().toLowerCase();
+
+    User? user = await _auth.signUpWithEmailAndPassword(email, password);
+
+    setState(() {
+      _isLoading = false;
+    });
+    if (user != null) {
+      showToast(message: "User is successfully created");
+      Navigator.pushNamedAndRemoveUntil(
+          context, "/dashboard", (Route<dynamic> route) => false,
+          arguments: {'user_email': emailController.text.trim()});
+    } else {
+      showToast(message: "Some error happend");
+    }
   }
 }
